@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>興達發電廠儲槽／桶槽統計調查系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #f2f5f9;
+    --surface: #ffffff;
+    --surface2: #f7f9fc;
+    --border: #cdd6e3;
+    --border-light: #e5ebf3;
+    --accent: #1a5fa8;
+    --accent-light: #e8f1fb;
+    --accent-hover: #144e8e;
+    --text: #1a2233;
+    --text-muted: #6b7a99;
+    --text-label: #2c3a52;
+    --success: #059669;
+    --success-light: #d1fae5;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 3px solid var(--accent);
+    padding: 0 32px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(26,95,168,0.08);
+  }
+  .header-inner {
+    max-width: 1060px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 76px;
+  }
+  .logo { display: flex; align-items: center; gap: 16px; }
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .logo-title { font-size: 19px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; }
+  .logo-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.3px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .header-badge {
+    font-size: 12px; color: var(--accent); font-weight: 700;
+    border: 1px solid rgba(26,95,168,0.25);
+    padding: 4px 14px; border-radius: 20px;
+    background: var(--accent-light);
+    letter-spacing: 0.3px;
+  }
+  .header-date { font-size: 13px; color: var(--text-muted); }
+
+  /* ── MAIN ── */
+  main { max-width: 1060px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── PAGE TITLE ── */
+  .page-title { text-align: center; margin-bottom: 36px; }
+  .page-title h1 {
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 900; color: var(--accent);
+    letter-spacing: 2px; margin-bottom: 10px;
+  }
+  .page-title p { color: var(--text-muted); font-size: 15px; letter-spacing: 0.5px; }
+
+  /* ── PENDING ── */
+  #pending-section { display: none; margin-bottom: 28px; }
+  .pending-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .pending-label {
+    font-size: 15px; font-weight: 700; color: var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pending-count {
+    background: var(--accent); color: #fff;
+    font-size: 13px; font-weight: 900;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pending-list { display: flex; flex-direction: column; gap: 8px; }
+  .pending-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 15px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: 6px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    animation: slide-in 0.3s ease;
+  }
+  @keyframes slide-in { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  .pending-info { font-size: 15px; color: var(--text); }
+  .pending-info .sep { color: var(--border); margin: 0 8px; }
+  .pending-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; padding: 4px 8px; transition: color 0.2s; }
+  .pending-remove:hover { color: var(--danger); }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(26,95,168,0.07);
+  }
+  .form-section { border-bottom: 1px solid var(--border-light); padding: 30px 42px; }
+  .form-section:last-of-type { border-bottom: none; }
+
+  .section-title {
+    font-size: 13px; font-weight: 800; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title::before {
+    content: ''; width: 4px; height: 18px;
+    background: var(--accent); border-radius: 2px; display: inline-block;
+  }
+
+  /* ── FIELDS ── */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-bottom: 24px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media(max-width:640px) {
+    .form-row, .form-row.three { grid-template-columns: 1fr; }
+    .form-section { padding: 24px 20px; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 9px; }
+  .field label { font-size: 15px; font-weight: 700; color: var(--text-label); }
+  .field label .req { color: var(--danger); margin-left: 3px; }
+  .field label .hint { color: var(--text-muted); font-size: 13px; font-weight: 400; margin-left: 6px; }
+
+  .field input, .field select, .field textarea {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 14px 18px;
+    font-size: 16px; font-family: 'Noto Sans TC', sans-serif;
+    border-radius: 6px; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .field select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='8' viewBox='0 0 13 8'%3E%3Cpath d='M1 1l5.5 5.5L12 1' stroke='%231a5fa8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center;
+    padding-right: 44px; cursor: pointer;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(26,95,168,0.10);
+  }
+  .field input::placeholder, .field textarea::placeholder { color: #b8c4d8; }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .field .err-msg { font-size: 13px; color: var(--danger); display: none; margin-top: 2px; font-weight: 500; }
+  .field.has-error .err-msg { display: block; }
+  .field.has-error > input,
+  .field.has-error > select,
+  .field.has-error > textarea {
+    border-color: var(--danger);
+    background: var(--danger-light);
+  }
+
+  /* ── RADIO PILLS ── */
+  .radio-group { display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
+  .radio-opt { cursor: pointer; }
+  .radio-opt input[type="radio"] { display: none; }
+  .radio-pill {
+    padding: 12px 24px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px; font-weight: 500; color: var(--text-muted);
+    background: var(--surface2);
+    transition: all 0.18s; cursor: pointer; user-select: none; display: block;
+  }
+  .radio-opt input:checked + .radio-pill {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent); font-weight: 700;
+  }
+  .radio-pill:hover { border-color: var(--accent); background: #fff; color: var(--text); }
+
+  /* ── CONDITIONAL BLOCK ── */
+  .cond-block {
+    background: #eef5ff;
+    border: 1.5px dashed rgba(26,95,168,0.28);
+    border-radius: 8px; padding: 22px 24px;
+    margin-top: 18px; display: none;
+  }
+  .cond-block.show { display: block; }
+  .cond-label {
+    font-size: 13px; color: var(--accent); letter-spacing: 1px;
+    font-weight: 800; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .cond-label::before { content: '↳'; font-size: 17px; }
+
+  /* ── FILE UPLOAD ── */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 34px 24px; text-align: center; cursor: pointer;
+    transition: all 0.22s; position: relative; background: var(--surface2);
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent); background: var(--accent-light);
+  }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 34px; margin-bottom: 10px; }
+  .upload-label { font-size: 16px; color: var(--text-muted); line-height: 1.8; }
+  .upload-label strong { color: var(--accent); }
+  .upload-preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .preview-item {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 14px; font-size: 14px; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .preview-item.is-image img { width: 72px; height: 58px; object-fit: cover; border-radius: 4px; }
+  .preview-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 17px; transition: color 0.2s; }
+  .preview-remove:hover { color: var(--danger); }
+
+  /* ── BUTTONS ── */
+  .btn-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    padding: 28px 42px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border-light);
+  }
+  .btn {
+    padding: 15px 30px; font-size: 16px; font-weight: 700;
+    border: none; cursor: pointer; border-radius: 7px;
+    transition: all 0.2s; font-family: 'Noto Sans TC', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-primary   { background: var(--accent); color: #fff; }
+  .btn-primary:hover   { background: var(--accent-hover); box-shadow: 0 4px 16px rgba(26,95,168,0.28); transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent); }
+  .btn-secondary:hover { background: var(--accent-light); }
+  .btn-success   { background: var(--success); color: #fff; }
+  .btn-success:hover   { background: #047857; box-shadow: 0 4px 16px rgba(5,150,105,0.28); transform: translateY(-1px); }
+  .btn-ghost     { background: var(--surface); border: 1.5px solid var(--border); color: var(--text-muted); }
+  .btn-ghost:hover     { border-color: var(--danger); color: var(--danger); }
+  .btn:disabled  { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+  /* ── RECORD LABEL ── */
+  .record-no { font-size: 15px; color: var(--text-muted); text-align: right; padding: 16px 42px 0; font-weight: 500; }
+
+  /* ── STATUS BAR ── */
+  #status-bar {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1.5px solid var(--border);
+    padding: 15px 32px; border-radius: 8px;
+    font-size: 16px; z-index: 999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    white-space: nowrap; font-weight: 600;
+  }
+  #status-bar.show { opacity: 1; pointer-events: auto; }
+  #status-bar.success   { border-color: var(--success); color: var(--success); background: var(--success-light); }
+  #status-bar.error-bar { border-color: var(--danger);  color: var(--danger);  background: var(--danger-light); }
+  #status-bar.info      { border-color: var(--accent);  color: var(--accent);  background: var(--accent-light); }
+
+  /* ── OVERLAY ── */
+  #overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(242,245,249,0.88); z-index: 500;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 18px;
+    backdrop-filter: blur(4px);
+  }
+  #overlay.show { display: flex; }
+  .spinner {
+    width: 50px; height: 50px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay-text { font-size: 17px; color: var(--accent); font-weight: 700; }
+
+  /* ── NOTICE BAR ── */
+  .notice-bar {
+    background: var(--accent-light);
+    border: 1.5px solid rgba(26,95,168,0.2);
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .notice-bar-left {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .notice-icon {
+    font-size: 22px; flex-shrink: 0;
+  }
+  .notice-text { font-size: 15px; color: var(--text-label); line-height: 1.5; }
+  .notice-text strong { color: var(--accent); }
+  .btn-view-sheet {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff;
+    padding: 12px 22px; border-radius: 6px;
+    font-size: 15px; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-view-sheet:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 16px rgba(26,95,168,0.28);
+    transform: translateY(-1px);
+  }
+
+  footer {
+    text-align: center; padding: 28px;
+    font-size: 14px; color: var(--text-muted);
+    border-top: 1px solid var(--border-light);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🛢</div>
+      <div>
+        <div class="logo-title">興達發電廠</div>
+        <div class="logo-sub">HSINTA POWER PLANT · TANK SURVEY SYSTEM</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-badge">儲槽統計調查系統</div>
+      <div class="header-date" id="header-date"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main>
+
+  <!-- 資料檢視連結列 -->
+  <div class="notice-bar">
+    <div class="notice-bar-left">
+      <div class="notice-icon">📊</div>
+      <div class="notice-text">
+        <strong>已填報的資料均儲存於 Google 試算表。</strong><br>
+        點選右側按鈕可開啟試算表，檢視所有已上傳的申報紀錄。
+      </div>
+    </div>
+    <a id="sheet-link"
+       href="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
+       target="_blank" rel="noopener"
+       class="btn-view-sheet">
+      📋 檢視已上傳資料
+    </a>
+  </div>
+
+  <div class="page-title">
+    <h1>儲槽／桶槽統計調查表</h1>
+    <p>台電興達發電廠 ｜ 帶 <span style="color:#dc2626">*</span> 為必填欄位，請如實填寫</p>
+  </div>
+
+  <!-- 暫存區 -->
+  <div id="pending-section">
+    <div class="pending-header">
+      <div class="pending-label">
+        ⏳ 暫存筆數
+        <span class="pending-count" id="pending-count">0</span>
+      </div>
+      <div style="font-size:14px;color:var(--text-muted)">完成所有筆數後，請點選「送出全部」</div>
+    </div>
+    <div class="pending-list" id="pending-list"></div>
+  </div>
+
+  <!-- 表單 -->
+  <div class="form-card">
+    <div class="record-no">第 <span id="record-num">1</span> 筆</div>
+
+    <!-- 01 · 申報單位 -->
+    <div class="form-section">
+      <div class="section-title">01 · 申報單位</div>
+      <div class="form-row full">
+        <div class="field" id="f-unit">
+          <label>組別－課別 <span class="req">*</span></label>
+          <input type="text" id="unit" placeholder="請輸入組別與課別，如：工安組－工安三課">
+          <div class="err-msg">請填寫組別與課別</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 · 儲槽區域 -->
+    <div class="form-section">
+      <div class="section-title">02 · 儲槽區域</div>
+      <div class="form-row full">
+        <div class="field" id="f-zone">
+          <label>儲槽區域 <span class="req">*</span></label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="zone" value="汽力機組"><span class="radio-pill">⚙ 汽力機組</span></label>
+            <label class="radio-opt"><input type="radio" name="zone" value="複循環機組"><span class="radio-pill">🔄 複循環機組</span></label>
+            <label class="radio-opt"><input type="radio" name="zone" value="煤場區"><span class="radio-pill">⛏ 煤場區</span></label>
+            <label class="radio-opt"><input type="radio" name="zone" value="其他"><span class="radio-pill">📌 其他</span></label>
+          </div>
+          <div class="err-msg">請選擇儲槽區域</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 · 詳細位置 -->
+    <div class="form-section">
+      <div class="section-title">03 · 詳細位置說明</div>
+      <div class="form-row full">
+        <div class="field" id="f-location">
+          <label>詳細位置說明 <span class="req">*</span></label>
+          <input type="text" id="location" placeholder="請輸入儲槽詳細位置（如：1號機鍋爐房東側 B1 層）">
+          <div class="err-msg">請填寫詳細位置說明</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04–06 · 貯存內容物資訊 -->
+    <div class="form-section">
+      <div class="section-title">04–06 · 貯存內容物資訊</div>
+      <div class="form-row">
+        <div class="field" id="f-chemical">
+          <label>是否貯存化學品 <span class="req">*</span></label>
+          <select id="chemical">
+            <option value="">── 請選擇 ──</option>
+            <option value="是（危害化學品）">是（危害化學品）</option>
+            <option value="是（一般化學品）">是（一般化學品）</option>
+            <option value="否（非化學品）">否（非化學品）</option>
+          </select>
+          <div class="err-msg">請選擇是否貯存化學品</div>
+        </div>
+        <div class="field" id="f-content">
+          <label>內容物說明 <span class="req">*</span></label>
+          <input type="text" id="content" placeholder="如：鹽酸、潤滑油、柴油…">
+          <div class="err-msg">請填寫內容物說明</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field" id="f-color">
+          <label>槽體顏色 <span class="req">*</span></label>
+          <input type="text" id="color" placeholder="如：銀白色、黃色、紅色…">
+          <div class="err-msg">請填寫槽體顏色</div>
+        </div>
+        <div class="field" id="f-height">
+          <label>槽體大約高度 <span class="req">*</span></label>
+          <input type="text" id="height" placeholder="如：3 m、約 1.2 m…">
+          <div class="err-msg">請填寫槽體大約高度</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 · 維護負責人 -->
+    <div class="form-section">
+      <div class="section-title">07 · 維護負責人</div>
+      <div class="form-row full">
+        <div class="field" id="f-owner">
+          <label>維護負責人 <span class="req">*</span></label>
+          <input type="text" id="owner" placeholder="請填寫維護負責人姓名">
+          <div class="err-msg">請填寫維護負責人</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 · 爬梯設施 -->
+    <div class="form-section">
+      <div class="section-title">08 · 爬梯設施</div>
+      <div class="form-row full">
+        <div class="field" id="f-ladder">
+          <label>槽體周遭是否具有爬梯 <span class="req">*</span></label>
+          <select id="ladder" onchange="toggleCond('ladder','cond-ladder',['是'])">
+            <option value="">── 請選擇 ──</option>
+            <option value="是">是</option>
+            <option value="否">否</option>
+          </select>
+          <div class="err-msg">請選擇是否具有爬梯</div>
+          <div class="cond-block" id="cond-ladder">
+            <div class="cond-label">爬梯相關說明（選填）</div>
+            <div class="field">
+              <label>爬梯管制措施說明 <span class="hint">（如有爬梯，請說明管制措施）</span></label>
+              <textarea id="ladder-ctrl" placeholder="如：設有鎖具管制、掛有警示標語、需先申請高處作業許可…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 09 · 高處作業平台 -->
+    <div class="form-section">
+      <div class="section-title">09 · 高處作業平台</div>
+      <div class="form-row full">
+        <div class="field" id="f-platform">
+          <label>槽體是否具高處作業平台 <span class="req">*</span></label>
+          <select id="platform" onchange="toggleCond('platform','cond-platform',['是'])">
+            <option value="">── 請選擇 ──</option>
+            <option value="是">是</option>
+            <option value="否">否</option>
+          </select>
+          <div class="err-msg">請選擇是否具有高處作業平台</div>
+          <div class="cond-block" id="cond-platform">
+            <div class="cond-label">高處平台護欄確認</div>
+            <div class="form-row full" style="margin-bottom:0">
+              <div class="field" id="f-railing">
+                <label>高處作業平台是否具有合格護欄 <span class="req">*</span></label>
+                <select id="railing">
+                  <option value="">── 請選擇 ──</option>
+                  <option value="是（符合法規標準）">是（符合法規標準）</option>
+                  <option value="是（但需維修改善）">是（但需維修改善）</option>
+                  <option value="否（缺乏護欄）">否（缺乏護欄）</option>
+                </select>
+                <div class="err-msg">請選擇護欄狀況</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 · 其他管制措施 -->
+    <div class="form-section">
+      <div class="section-title">10 · 其他管制措施說明（選填）</div>
+      <div class="form-row full">
+        <div class="field">
+          <label>其他管制措施說明</label>
+          <textarea id="other-ctrl" placeholder="如有其他管制措施或補充說明，請在此填寫…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11 · 儲槽照片 -->
+    <div class="form-section">
+      <div class="section-title">11 · 儲槽照片</div>
+      <div class="form-row full">
+        <div class="field" id="f-photo">
+          <label>儲槽照片 <span class="req">*</span></label>
+          <div class="upload-zone" id="photo-zone"
+               ondragover="handleDrag(event,'photo-zone')"
+               ondragleave="removeDrag('photo-zone')"
+               ondrop="handleDrop(event,'photo','photo-zone')">
+            <input type="file" id="photo" accept="image/*" multiple onchange="handleFiles(this,'photo')">
+            <div class="upload-icon">📷</div>
+            <div class="upload-label">
+              <strong>點選或拖曳</strong> 上傳儲槽照片<br>
+              支援 JPG / PNG / WEBP，可多張上傳
+            </div>
+          </div>
+          <div class="upload-preview" id="photo-preview"></div>
+          <div class="err-msg">請上傳至少一張儲槽照片</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 按鈕列 -->
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="keepAndContinue()">➕ 繼續填寫（暫存本筆）</button>
+      <button class="btn btn-primary"   onclick="submitAll()">✈ 送出全部資料</button>
+      <button class="btn btn-success"   id="export-btn" onclick="exportPDF()" style="display:none">⬇ 資料匯出（PDF）</button>
+      <button class="btn btn-ghost"     onclick="clearForm()">↺ 清除本筆</button>
+    </div>
+  </div>
+</main>
+
+<footer>© 興達發電廠儲槽統計調查系統 ｜ Powered by Cloudflare Pages + Google Sheets</footer>
+
+<div id="overlay"><div class="spinner"></div><div class="overlay-text" id="overlay-text">資料傳送中…</div></div>
+<div id="status-bar"></div>
+
+<script>
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+
+document.getElementById('header-date').textContent =
+  new Date().toLocaleDateString('zh-TW',{ year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+// ─── 條件顯示 ───────────────────────────
+function toggleCond(selectId, condId, showVals) {
+  const val = document.getElementById(selectId).value;
+  document.getElementById(condId).classList.toggle('show', showVals.includes(val));
+}
+
+// ─── 檔案管理 ───────────────────────────
+const fileStore = { photo: [] };
+
+function handleFiles(input, type) {
+  Array.from(input.files).forEach(f => addFile(f, type));
+  input.value = '';
+}
+function addFile(file, type) {
+  fileStore[type].push({ id: Date.now() + Math.random(), file });
+  renderPreview(type);
+}
+function removeFile(id, type) {
+  fileStore[type] = fileStore[type].filter(f => f.id != id);
+  renderPreview(type);
+}
+function renderPreview(type) {
+  const container = document.getElementById(type + '-preview');
+  container.innerHTML = '';
+  fileStore[type].forEach(({ id, file }) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    if (file.type.startsWith('image/')) {
+      item.classList.add('is-image');
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      item.appendChild(img);
+    }
+    const name = document.createElement('span'); name.textContent = file.name;
+    const btn  = document.createElement('button'); btn.className = 'preview-remove'; btn.textContent = '✕';
+    btn.onclick = () => removeFile(id, type);
+    item.appendChild(name); item.appendChild(btn);
+    container.appendChild(item);
+  });
+}
+function handleDrag(e, zoneId) { e.preventDefault(); document.getElementById(zoneId).classList.add('drag-over'); }
+function removeDrag(zoneId) { document.getElementById(zoneId).classList.remove('drag-over'); }
+function handleDrop(e, type, zoneId) {
+  e.preventDefault(); removeDrag(zoneId);
+  Array.from(e.dataTransfer.files).forEach(f => addFile(f, type));
+}
+
+// ─── 驗證 ───────────────────────────────
+function getRadio(name) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; }
+function getVal(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+function validate() {
+  let ok = true;
+  const checks = [
+    { id:'f-unit',     val:() => getVal('unit'),       msg:'請填寫組別與課別' },
+    { id:'f-zone',     val:() => getRadio('zone'),     msg:'請選擇儲槽區域' },
+    { id:'f-location', val:() => getVal('location'),   msg:'請填寫詳細位置說明' },
+    { id:'f-chemical', val:() => getVal('chemical'),   msg:'請選擇是否貯存化學品' },
+    { id:'f-content',  val:() => getVal('content'),    msg:'請填寫內容物說明' },
+    { id:'f-color',    val:() => getVal('color'),      msg:'請填寫槽體顏色' },
+    { id:'f-height',   val:() => getVal('height'),     msg:'請填寫槽體大約高度' },
+    { id:'f-owner',    val:() => getVal('owner'),      msg:'請填寫維護負責人' },
+    { id:'f-ladder',   val:() => getVal('ladder'),     msg:'請選擇是否具有爬梯' },
+    { id:'f-platform', val:() => getVal('platform'),   msg:'請選擇是否具高處作業平台' },
+    { id:'f-photo',    val:() => fileStore.photo.length > 0 ? 'ok' : '', msg:'請上傳至少一張儲槽照片' },
+  ];
+  if (getVal('platform') === '是')
+    checks.push({ id:'f-railing', val:() => getVal('railing'), msg:'請選擇護欄狀況' });
+
+  checks.forEach(c => {
+    const wrap = document.getElementById(c.id);
+    if (!wrap) return;
+    if (!c.val()) {
+      wrap.classList.add('has-error');
+      const msg = wrap.querySelector('.err-msg');
+      if (msg) msg.textContent = c.msg;
+      ok = false;
+    } else { wrap.classList.remove('has-error'); }
+  });
+  return ok;
+}
+
+// ─── 收集資料 ────────────────────────────
+function collectForm() {
+  return {
+    unit:       getVal('unit'),
+    zone:       getRadio('zone'),
+    location:   getVal('location'),
+    chemical:   getVal('chemical'),
+    content:    getVal('content'),
+    color:      getVal('color'),
+    height:     getVal('height'),
+    owner:      getVal('owner'),
+    ladder:     getVal('ladder'),
+    ladderCtrl: getVal('ladder-ctrl'),
+    platform:   getVal('platform'),
+    railing:    getVal('railing'),
+    otherCtrl:  getVal('other-ctrl'),
+    photos:     fileStore.photo.map(f => f.file.name).join('、'),
+    ts:         new Date().toLocaleString('zh-TW'),
+  };
+}
+
+// ─── 暫存 ────────────────────────────────
+let pendingRecords = [];
+
+function keepAndContinue() {
+  if (!validate()) { showStatus('請完整填寫必填欄位後再繼續', 'error-bar'); return; }
+  const data = collectForm();
+  data.photoFiles = [...fileStore.photo];
+  pendingRecords.push(data);
+  renderPending(); clearForm();
+  showStatus(`第 ${pendingRecords.length} 筆已暫存，請繼續填寫下一筆`, 'info');
+  updateRecordNum();
+}
+
+function renderPending() {
+  const section = document.getElementById('pending-section');
+  const list    = document.getElementById('pending-list');
+  const count   = document.getElementById('pending-count');
+  section.style.display = pendingRecords.length ? 'block' : 'none';
+  count.textContent = pendingRecords.length;
+  list.innerHTML = '';
+  pendingRecords.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'pending-card';
+    card.innerHTML = `
+      <div class="pending-info">
+        <strong style="color:var(--accent)">#${i+1}</strong>
+        <span class="sep">·</span>${r.unit}
+        <span class="sep">·</span>${r.zone}
+        <span class="sep">·</span>${r.location}
+        <span class="sep">·</span>${r.content}
+        <span style="color:var(--text-muted);font-size:13px;margin-left:8px">${r.ts}</span>
+      </div>
+      <button class="pending-remove" onclick="removePending(${i})">✕</button>`;
+    list.appendChild(card);
+  });
+}
+
+function removePending(i) { pendingRecords.splice(i,1); renderPending(); updateRecordNum(); }
+function updateRecordNum() { document.getElementById('record-num').textContent = pendingRecords.length + 1; }
+
+// ─── 送出全部 ────────────────────────────
+async function submitAll() {
+  if (!validate()) { showStatus('請完整填寫必填欄位', 'error-bar'); return; }
+  const current = collectForm();
+  current.photoFiles = [...fileStore.photo];
+  const allRecords = [...pendingRecords, current];
+  showOverlay('資料傳送中，請稍候…');
+  try {
+    const payload = await Promise.all(allRecords.map(async (r, idx) => {
+      const photoB64 = await Promise.all((r.photoFiles||[]).map(f => toBase64(f.file)));
+      return {
+        序號: idx+1, 申報時間: r.ts, 組別課別: r.unit,
+        儲槽區域: r.zone, 詳細位置: r.location,
+        是否化學品: r.chemical, 內容物說明: r.content,
+        槽體顏色: r.color, 槽體高度: r.height,
+        維護負責人: r.owner,
+        具有爬梯: r.ladder, 爬梯管制措施: r.ladderCtrl,
+        具有高處平台: r.platform, 護欄狀況: r.railing,
+        其他管制措施: r.otherCtrl, 照片檔名: r.photos,
+        photos: photoB64,
+      };
+    }));
+    const res  = await fetch(GOOGLE_SHEET_URL, { method:'POST', body: JSON.stringify({ records: payload }) });
+    const json = await res.json().catch(() => ({}));
+    hideOverlay();
+    if (json.result === 'success' || res.ok) {
+      showStatus(`✅ 已成功送出 ${allRecords.length} 筆資料！`, 'success');
+      window._exportData = allRecords;
+      pendingRecords = []; renderPending(); clearForm();
+      document.getElementById('export-btn').style.display = 'flex';
+    } else { throw new Error(json.error || '送出失敗'); }
+  } catch (err) {
+    hideOverlay();
+    showStatus('⚠ 連線失敗：' + err.message, 'error-bar');
+    window._exportData = allRecords;
+    document.getElementById('export-btn').style.display = 'flex';
+  }
+}
+
+function toBase64(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── PDF 匯出 ────────────────────────────
+async function exportPDF() {
+  const data = window._exportData;
+  if (!data || !data.length) { showStatus('尚無可匯出的資料', 'error-bar'); return; }
+  showOverlay('產生 PDF 中…');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const pageW = 210; const margin = 14;
+
+  for (let i = 0; i < data.length; i++) {
+    const r = data[i];
+    if (i > 0) doc.addPage();
+    doc.setFillColor(26,95,168);
+    doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(13);
+    doc.text('Hsinta Power Plant – Storage Tank Survey', pageW/2, 9, { align:'center' });
+    doc.setFontSize(9); doc.setTextColor(200,220,255);
+    doc.text('興達發電廠儲槽／桶槽統計調查表', pageW/2, 17, { align:'center' });
+
+    const fields = [
+      ['序號',           `#${r.序號}`],
+      ['申報時間',       r.申報時間],
+      ['組別－課別',     r.組別課別],
+      ['儲槽區域',       r.儲槽區域],
+      ['詳細位置',       r.詳細位置],
+      ['是否貯存化學品', r.是否化學品],
+      ['內容物說明',     r.內容物說明],
+      ['槽體顏色',       r.槽體顏色],
+      ['槽體大約高度',   r.槽體高度],
+      ['維護負責人',     r.維護負責人],
+      ['具有爬梯',       r.具有爬梯],
+      ['爬梯管制措施',   r.爬梯管制措施 || '—'],
+      ['具高處作業平台', r.具有高處平台],
+      ['護欄狀況',       r.護欄狀況 || '（無平台）'],
+      ['其他管制措施',   r.其他管制措施 || '—'],
+      ['照片檔名',       r.照片檔名 || '（未提供）'],
+    ];
+
+    doc.autoTable({
+      startY: 26, head: [['欄位 Field', '內容 Content']], body: fields,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor:[26,95,168], textColor:[255,255,255], fontStyle:'bold' },
+      alternateRowStyles: { fillColor:[245,249,255] },
+      styles: { fontSize:10, cellPadding:4 },
+      columnStyles: { 0:{ fontStyle:'bold', cellWidth:62 }, 1:{ cellWidth:'auto' } },
+    });
+
+    const photos = r.photoFiles || [];
+    if (photos.length > 0) {
+      let imgY = doc.lastAutoTable.finalY + 8;
+      doc.setFontSize(9); doc.setTextColor(100);
+      doc.text('儲槽現場照片 On-site Photos:', margin, imgY);
+      imgY += 5; let imgX = margin;
+      for (let p = 0; p < Math.min(photos.length,3); p++) {
+        try {
+          const b64 = await toBase64(photos[p].file);
+          const ext = photos[p].file.type.includes('png') ? 'PNG' : 'JPEG';
+          doc.addImage('data:'+photos[p].file.type+';base64,'+b64, ext, imgX, imgY, 52, 40);
+          imgX += 56;
+        } catch(_) {}
+      }
+    }
+    doc.setFontSize(8); doc.setTextColor(160);
+    doc.text(`Page ${i+1} / ${data.length}  ·  ${new Date().toLocaleDateString('zh-TW')}`, pageW-margin, 293, { align:'right' });
+  }
+  hideOverlay();
+  doc.save(`興達儲槽調查表_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'-')}.pdf`);
+  showStatus('✅ PDF 已下載', 'success');
+}
+
+// ─── 清除 ────────────────────────────────
+function clearForm() {
+  ['unit','location','content','color','height','owner','ladder-ctrl','other-ctrl'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['chemical','ladder','platform','railing'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.querySelectorAll('input[name="zone"]').forEach(r => r.checked = false);
+  document.getElementById('cond-ladder').classList.remove('show');
+  document.getElementById('cond-platform').classList.remove('show');
+  fileStore.photo = []; renderPreview('photo');
+  ['f-unit','f-zone','f-location','f-chemical','f-content','f-color','f-height',
+   'f-owner','f-ladder','f-platform','f-railing','f-photo']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('has-error'); });
+}
+
+// ─── UI 工具 ─────────────────────────────
+function showOverlay(txt) { document.getElementById('overlay-text').textContent = txt; document.getElementById('overlay').classList.add('show'); }
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+let statusTimer;
+function showStatus(msg, type) {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = msg; bar.className = 'show ' + type;
+  bar.style.display = 'flex';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => bar.classList.remove('show'), 4500);
+}
+</script>
+</body>
+</html>
