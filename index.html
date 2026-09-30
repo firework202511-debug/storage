@@ -895,12 +895,35 @@ function toBase64(file) {
   });
 }
 
-// ─── PDF 匯出（瀏覽器列印，完整支援中文）────
+// ─── PDF 匯出（瀏覽器列印）────────────────
 async function exportPDF() {
   const data = window._exportData;
   if (!data || !data.length) { showStatus('尚無可匯出的資料', 'error-bar'); return; }
 
   showOverlay('產生報表中…');
+
+  // 核章表格 HTML（嵌入每份第一筆資料後 / 多筆時放最後）
+  const signBlock = `
+  <div style="margin-top:32px;page-break-inside:avoid;">
+    <div style="background:#1a5fa8;color:#fff;font-size:13px;font-weight:bold;padding:10px 16px;letter-spacing:2px;">
+      核　章　欄
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <th style="border:1.5px solid #1a5fa8;background:#e8f1fb;color:#1a2233;font-size:13px;font-weight:bold;padding:10px;text-align:center;width:33.33%;">填　寫　人</th>
+        <th style="border:1.5px solid #1a5fa8;background:#e8f1fb;color:#1a2233;font-size:13px;font-weight:bold;padding:10px;text-align:center;width:33.33%;">課　　　長</th>
+        <th style="border:1.5px solid #1a5fa8;background:#e8f1fb;color:#1a2233;font-size:13px;font-weight:bold;padding:10px;text-align:center;width:33.33%;">經　　　理</th>
+      </tr>
+      <tr>
+        <td style="border:1.5px solid #1a5fa8;height:80px;vertical-align:top;padding:8px 12px;font-size:12px;color:#6b7a99;">簽章：</td>
+        <td style="border:1.5px solid #1a5fa8;height:80px;vertical-align:top;padding:8px 12px;font-size:12px;color:#6b7a99;">簽章：</td>
+        <td style="border:1.5px solid #1a5fa8;height:80px;vertical-align:top;padding:8px 12px;font-size:12px;color:#6b7a99;">簽章：</td>
+      </tr>
+    </table>
+    <div style="font-size:11px;color:#9aabb8;text-align:right;margin-top:6px;">
+      共 ${data.length} 筆　·　本表核章後請歸檔備查
+    </div>
+  </div>`;
 
   let html = `<!DOCTYPE html>
 <html lang="zh-TW">
@@ -911,23 +934,23 @@ async function exportPDF() {
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; padding: 32px; color: #1a2233; line-height: 1.6; font-size: 14px; }
-    .doc-header { text-align: center; margin-bottom: 36px; border-bottom: 3px solid #1a5fa8; padding-bottom: 16px; }
-    .doc-header h1 { color: #1a5fa8; font-size: 26px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
+    .doc-header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #1a5fa8; padding-bottom: 14px; }
+    .doc-header h1 { color: #1a5fa8; font-size: 24px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
     .doc-header p { color: #6b7a99; font-size: 13px; }
-    .record { page-break-inside: avoid; margin-bottom: 48px; border: 1px solid #cdd6e3; border-radius: 8px; overflow: hidden; }
-    .record-title { background: #1a5fa8; color: #fff; font-size: 16px; font-weight: 700; padding: 12px 20px; }
+    .record { margin-bottom: 36px; border: 1px solid #cdd6e3; border-radius: 8px; overflow: hidden; }
+    .record-title { background: #1a5fa8; color: #fff; font-size: 15px; font-weight: 700; padding: 11px 18px; }
     table { width: 100%; border-collapse: collapse; }
     tr:nth-child(even) td, tr:nth-child(even) th { background: #f7f9fc; }
-    th, td { border: 1px solid #e5ebf3; padding: 11px 16px; font-size: 14px; text-align: left; vertical-align: top; }
+    th, td { border: 1px solid #e5ebf3; padding: 10px 15px; font-size: 14px; text-align: left; vertical-align: top; }
     th { background: #f0f5ff; color: #2c3a52; font-weight: 700; width: 32%; white-space: nowrap; }
     td { color: #1a2233; }
-    .photos-label { font-size: 13px; font-weight: 700; color: #1a5fa8; margin: 14px 16px 8px; }
-    .img-row { display: flex; gap: 12px; padding: 0 16px 16px; flex-wrap: wrap; }
+    .photos-label { font-size: 13px; font-weight: 700; color: #1a5fa8; margin: 12px 16px 8px; }
+    .img-row { display: flex; gap: 12px; padding: 0 16px 14px; flex-wrap: wrap; }
     .img-row img { height: 130px; object-fit: cover; border: 1px solid #cdd6e3; border-radius: 4px; }
-    .export-time { text-align: right; font-size: 12px; color: #9aabb8; margin-top: 40px; }
+    .page-sep { page-break-before: always; padding-top: 8px; }
     @media print {
-      body { padding: 16px; }
-      .record { margin-bottom: 32px; }
+      body { padding: 18px 22px; }
+      .record { margin-bottom: 24px; }
     }
   </style>
 </head>
@@ -940,9 +963,12 @@ async function exportPDF() {
 
   for (let i = 0; i < data.length; i++) {
     const r = data[i];
+    // 第二筆以後換頁
+    if (i > 0) html += `<div class="page-sep"></div>`;
+
     html += `
   <div class="record">
-    <div class="record-title">紀錄編號 #${i + 1}　｜　${r.unit}　｜　${r.zone}</div>
+    <div class="record-title">#${i + 1}　${r.unit}　｜　${r.zone}　｜　${r.location}</div>
     <table>
       <tr><th>申報時間</th><td>${r.ts}</td></tr>
       <tr><th>組別－課別</th><td>${r.unit}</td></tr>
@@ -963,7 +989,7 @@ async function exportPDF() {
 
     const photos = r.photoFiles || [];
     if (photos.length > 0) {
-      html += `<div class="photos-label">📷 儲槽現場照片</div><div class="img-row">`;
+      html += `<div class="photos-label">儲槽現場照片</div><div class="img-row">`;
       for (let p = 0; p < Math.min(photos.length, 4); p++) {
         try {
           const b64 = await toBase64(photos[p].file);
@@ -973,55 +999,14 @@ async function exportPDF() {
       html += `</div>`;
     }
     html += `</div>`;  // end .record
+
+    // 核章欄：放在最後一筆下方（同頁）
+    if (i === data.length - 1) {
+      html += signBlock;
+    }
   }
 
-  html += `
-  <div class="export-time">本報表由興達發電廠儲槽統計調查系統自動產生 · 匯出時間：${new Date().toLocaleString('zh-TW')}</div>
-
-  <!-- 核章欄位 -->
-  <div style="page-break-before:always; padding:40px 0 20px;">
-    <h2 style="text-align:center;color:#1a5fa8;font-size:20px;letter-spacing:3px;margin-bottom:32px;font-weight:900;">
-      興達發電廠儲槽／桶槽統計調查表　核章頁
-    </h2>
-    <table style="width:100%;border-collapse:collapse;font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;">
-      <thead>
-        <tr>
-          <th style="border:2px solid #1a5fa8;background:#1a5fa8;color:#fff;font-size:15px;padding:14px;text-align:center;width:33.33%;">填　寫　人</th>
-          <th style="border:2px solid #1a5fa8;background:#1a5fa8;color:#fff;font-size:15px;padding:14px;text-align:center;width:33.33%;">課　　　長</th>
-          <th style="border:2px solid #1a5fa8;background:#1a5fa8;color:#fff;font-size:15px;padding:14px;text-align:center;width:33.33%;">經　　　理</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="border:2px solid #1a5fa8;height:120px;vertical-align:bottom;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            簽章：
-          </td>
-          <td style="border:2px solid #1a5fa8;height:120px;vertical-align:bottom;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            簽章：
-          </td>
-          <td style="border:2px solid #1a5fa8;height:120px;vertical-align:bottom;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            簽章：
-          </td>
-        </tr>
-        <tr>
-          <td style="border:2px solid #1a5fa8;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            姓名：<br>日期：　　年　　月　　日
-          </td>
-          <td style="border:2px solid #1a5fa8;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            姓名：<br>日期：　　年　　月　　日
-          </td>
-          <td style="border:2px solid #1a5fa8;padding:10px 16px;font-size:13px;color:#6b7a99;">
-            姓名：<br>日期：　　年　　月　　日
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div style="margin-top:20px;font-size:12px;color:#9aabb8;text-align:center;">
-      本表核章後，請歸檔備查。統計調查共 ${data.length} 筆。
-    </div>
-  </div>
-
-</body></html>`;
+  html += `</body></html>`;
 
   hideOverlay();
 
