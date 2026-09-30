@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>興達發電廠儲槽／桶槽統計調查系統</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root {
     --bg: #f2f5f9;
@@ -198,6 +196,25 @@
     color: var(--accent); font-weight: 700;
   }
   .radio-pill:hover { border-color: var(--accent); background: #fff; color: var(--text); }
+
+  /* ── CHECKBOX GROUP（複選）── */
+  .check-group { display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
+  .check-opt { cursor: pointer; }
+  .check-opt input[type="checkbox"] { display: none; }
+  .check-pill {
+    padding: 11px 22px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px; font-weight: 500; color: var(--text-muted);
+    background: var(--surface2);
+    transition: all 0.18s; cursor: pointer; user-select: none; display: block;
+  }
+  .check-opt input:checked + .check-pill {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent); font-weight: 700;
+  }
+  .check-pill:hover { border-color: var(--accent); background: #fff; color: var(--text); }
 
   /* ── CONDITIONAL BLOCK ── */
   .cond-block {
@@ -473,14 +490,14 @@
       </div>
     </div>
 
-    <!-- 07 · 維護負責人 -->
+    <!-- 07 · 檢點負責人 -->
     <div class="form-section">
-      <div class="section-title">07 · 維護負責人</div>
+      <div class="section-title">07 · 檢點負責人</div>
       <div class="form-row full">
         <div class="field" id="f-owner">
-          <label>維護負責人 <span class="req">*</span></label>
-          <input type="text" id="owner" placeholder="請填寫維護負責人姓名">
-          <div class="err-msg">請填寫維護負責人</div>
+          <label>檢點負責人 <span class="req">*</span></label>
+          <input type="text" id="owner" placeholder="請填寫檢點負責人姓名">
+          <div class="err-msg">請填寫檢點負責人</div>
         </div>
       </div>
     </div>
@@ -498,10 +515,25 @@
           </select>
           <div class="err-msg">請選擇是否具有爬梯</div>
           <div class="cond-block" id="cond-ladder">
-            <div class="cond-label">爬梯相關說明（選填）</div>
+            <div class="cond-label">爬梯管制措施（選填，可複選）</div>
             <div class="field">
-              <label>爬梯管制措施說明 <span class="hint">（如有爬梯，請說明管制措施）</span></label>
-              <textarea id="ladder-ctrl" placeholder="如：設有鎖具管制、掛有警示標語、需先申請高處作業許可…"></textarea>
+              <label>管制措施 <span class="hint">（可複選）</span></label>
+              <div class="check-group">
+                <label class="check-opt">
+                  <input type="checkbox" name="ladder-ctrl" value="上鎖管制">
+                  <span class="check-pill">🔒 上鎖管制</span>
+                </label>
+                <label class="check-opt">
+                  <input type="checkbox" name="ladder-ctrl" value="掛有警示標語">
+                  <span class="check-pill">⚠ 掛有警示標語</span>
+                </label>
+                <label class="check-opt">
+                  <input type="checkbox" name="ladder-ctrl" value="__other__" id="ladder-ctrl-other-cb" onchange="toggleOtherInput()">
+                  <span class="check-pill">✏ 其他</span>
+                </label>
+              </div>
+              <input type="text" id="ladder-ctrl-other-text" placeholder="請說明其他管制措施…"
+                     style="display:none;margin-top:10px;">
             </div>
           </div>
         </div>
@@ -555,7 +587,7 @@
       <div class="section-title">11 · 儲槽照片</div>
       <div class="form-row full">
         <div class="field" id="f-photo">
-          <label>儲槽照片 <span class="req">*</span></label>
+          <label>儲槽照片（近照／遠照） <span class="req">*</span></label>
           <div class="upload-zone" id="photo-zone"
                ondragover="handleDrag(event,'photo-zone')"
                ondragleave="removeDrag('photo-zone')"
@@ -563,12 +595,16 @@
             <input type="file" id="photo" accept="image/*" multiple onchange="handleFiles(this,'photo')">
             <div class="upload-icon">📷</div>
             <div class="upload-label">
-              <strong>點選或拖曳</strong> 上傳儲槽照片<br>
-              支援 JPG / PNG / WEBP，可多張上傳
+              <strong>點選或拖曳</strong> 上傳儲槽照片（近照／遠照）<br>
+              請至少上傳 <strong>2 張</strong>照片（近照與遠照各一）<br>
+              支援 JPG / PNG / WEBP
             </div>
           </div>
+          <div id="photo-count-hint" style="font-size:13px;color:var(--text-muted);margin-top:6px;">
+            已上傳 <span id="photo-count">0</span> 張（最少需 2 張）
+          </div>
           <div class="upload-preview" id="photo-preview"></div>
-          <div class="err-msg">請上傳至少一張儲槽照片</div>
+          <div class="err-msg">請上傳至少 2 張儲槽照片（近照與遠照）</div>
         </div>
       </div>
     </div>
@@ -589,7 +625,7 @@
 <div id="status-bar"></div>
 
 <script>
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwzUU84xf9g3DnshFdupq_exd9B8ziJtJWyb4LrxWWrC3lzyjD4RDbzptW1iUJmS2MX/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwgnf0cRj-ufYcgXLCSzd-EQiJqA9epls2ODFUBQjhnbBkY1eTR1FzBE1OpYFLg5qaJ/exec";
 
 document.getElementById('header-date').textContent =
   new Date().toLocaleDateString('zh-TW',{ year:'numeric', month:'long', day:'numeric', weekday:'long' });
@@ -598,6 +634,27 @@ document.getElementById('header-date').textContent =
 function toggleCond(selectId, condId, showVals) {
   const val = document.getElementById(selectId).value;
   document.getElementById(condId).classList.toggle('show', showVals.includes(val));
+}
+
+// ─── 爬梯「其他」輸入框顯示控制 ──────────
+function toggleOtherInput() {
+  const cb  = document.getElementById('ladder-ctrl-other-cb');
+  const txt = document.getElementById('ladder-ctrl-other-text');
+  txt.style.display = cb.checked ? 'block' : 'none';
+  if (!cb.checked) txt.value = '';
+}
+
+// ─── 取得爬梯複選結果 ────────────────────
+function getCheckedLadderCtrl() {
+  const checked = [...document.querySelectorAll('input[name="ladder-ctrl"]:checked')]
+    .map(cb => {
+      if (cb.value === '__other__') {
+        const txt = document.getElementById('ladder-ctrl-other-text').value.trim();
+        return txt ? `其他：${txt}` : '其他';
+      }
+      return cb.value;
+    });
+  return checked.join('、');
 }
 
 // ─── 檔案管理 ───────────────────────────
@@ -633,6 +690,16 @@ function renderPreview(type) {
     item.appendChild(name); item.appendChild(btn);
     container.appendChild(item);
   });
+  // 更新照片張數提示
+  if (type === 'photo') {
+    const countEl = document.getElementById('photo-count');
+    if (countEl) {
+      const n = fileStore.photo.length;
+      countEl.textContent = n;
+      countEl.style.color = n >= 2 ? 'var(--success)' : 'var(--danger)';
+      countEl.style.fontWeight = '700';
+    }
+  }
 }
 function handleDrag(e, zoneId) { e.preventDefault(); document.getElementById(zoneId).classList.add('drag-over'); }
 function removeDrag(zoneId) { document.getElementById(zoneId).classList.remove('drag-over'); }
@@ -658,7 +725,7 @@ function validate() {
     { id:'f-owner',    val:() => getVal('owner'),      msg:'請填寫維護負責人' },
     { id:'f-ladder',   val:() => getVal('ladder'),     msg:'請選擇是否具有爬梯' },
     { id:'f-platform', val:() => getVal('platform'),   msg:'請選擇是否具高處作業平台' },
-    { id:'f-photo',    val:() => fileStore.photo.length > 0 ? 'ok' : '', msg:'請上傳至少一張儲槽照片' },
+    { id:'f-photo',    val:() => fileStore.photo.length >= 2 ? 'ok' : '', msg:'請上傳至少 2 張儲槽照片（近照與遠照）' },
   ];
   if (getVal('platform') === '是')
     checks.push({ id:'f-railing', val:() => getVal('railing'), msg:'請選擇護欄狀況' });
@@ -688,7 +755,7 @@ function collectForm() {
     height:     getVal('height'),
     owner:      getVal('owner'),
     ladder:     getVal('ladder'),
-    ladderCtrl: getVal('ladder-ctrl'),
+    ladderCtrl: getCheckedLadderCtrl(),
     platform:   getVal('platform'),
     railing:    getVal('railing'),
     otherCtrl:  getVal('other-ctrl'),
@@ -737,7 +804,7 @@ function renderPending() {
 function removePending(i) { pendingRecords.splice(i,1); renderPending(); updateRecordNum(); }
 function updateRecordNum() { document.getElementById('record-num').textContent = pendingRecords.length + 1; }
 
-// ─── 送出全部 ────────────────────────────
+// ─── 送出全部（no-cors 模式解決 CORS 問題）────
 async function submitAll() {
   if (!validate()) { showStatus('請完整填寫必填欄位', 'error-bar'); return; }
   const current = collectForm();
@@ -759,18 +826,23 @@ async function submitAll() {
         photos: photoB64,
       };
     }));
-    const res  = await fetch(GOOGLE_SHEET_URL, { method:'POST', body: JSON.stringify({ records: payload }) });
-    const json = await res.json().catch(() => ({}));
+
+    // 使用 no-cors 避免 CORS 封鎖（Apps Script 會收到但瀏覽器不會拿到回應）
+    await fetch(GOOGLE_SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ records: payload }),
+    });
+
     hideOverlay();
-    if (json.result === 'success' || res.ok) {
-      showStatus(`✅ 已成功送出 ${allRecords.length} 筆資料！`, 'success');
-      window._exportData = allRecords;
-      pendingRecords = []; renderPending(); clearForm();
-      document.getElementById('export-btn').style.display = 'flex';
-    } else { throw new Error(json.error || '送出失敗'); }
+    showStatus(`✅ 已送出 ${allRecords.length} 筆資料！`, 'success');
+    window._exportData = allRecords;
+    pendingRecords = []; renderPending(); clearForm();
+    document.getElementById('export-btn').style.display = 'flex';
+
   } catch (err) {
     hideOverlay();
-    showStatus('⚠ 連線失敗：' + err.message, 'error-bar');
+    showStatus('⚠ 送出失敗：' + err.message, 'error-bar');
     window._exportData = allRecords;
     document.getElementById('export-btn').style.display = 'flex';
   }
@@ -785,81 +857,112 @@ function toBase64(file) {
   });
 }
 
-// ─── PDF 匯出 ────────────────────────────
+// ─── PDF 匯出（瀏覽器列印，完整支援中文）────
 async function exportPDF() {
   const data = window._exportData;
   if (!data || !data.length) { showStatus('尚無可匯出的資料', 'error-bar'); return; }
-  showOverlay('產生 PDF 中…');
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const pageW = 210; const margin = 14;
+
+  showOverlay('產生報表中…');
+
+  let html = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>興達發電廠儲槽統計調查表</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; padding: 32px; color: #1a2233; line-height: 1.6; font-size: 14px; }
+    .doc-header { text-align: center; margin-bottom: 36px; border-bottom: 3px solid #1a5fa8; padding-bottom: 16px; }
+    .doc-header h1 { color: #1a5fa8; font-size: 26px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
+    .doc-header p { color: #6b7a99; font-size: 13px; }
+    .record { page-break-inside: avoid; margin-bottom: 48px; border: 1px solid #cdd6e3; border-radius: 8px; overflow: hidden; }
+    .record-title { background: #1a5fa8; color: #fff; font-size: 16px; font-weight: 700; padding: 12px 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    tr:nth-child(even) td, tr:nth-child(even) th { background: #f7f9fc; }
+    th, td { border: 1px solid #e5ebf3; padding: 11px 16px; font-size: 14px; text-align: left; vertical-align: top; }
+    th { background: #f0f5ff; color: #2c3a52; font-weight: 700; width: 32%; white-space: nowrap; }
+    td { color: #1a2233; }
+    .photos-label { font-size: 13px; font-weight: 700; color: #1a5fa8; margin: 14px 16px 8px; }
+    .img-row { display: flex; gap: 12px; padding: 0 16px 16px; flex-wrap: wrap; }
+    .img-row img { height: 130px; object-fit: cover; border: 1px solid #cdd6e3; border-radius: 4px; }
+    .export-time { text-align: right; font-size: 12px; color: #9aabb8; margin-top: 40px; }
+    @media print {
+      body { padding: 16px; }
+      .record { margin-bottom: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <h1>興達發電廠儲槽／桶槽統計調查表</h1>
+    <p>Hsinta Power Plant – Storage Tank Statistical Survey</p>
+    <p style="margin-top:4px;color:#9aabb8;font-size:12px;">匯出時間：${new Date().toLocaleString('zh-TW')}</p>
+  </div>`;
 
   for (let i = 0; i < data.length; i++) {
     const r = data[i];
-    if (i > 0) doc.addPage();
-    doc.setFillColor(26,95,168);
-    doc.rect(0,0,pageW,22,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(13);
-    doc.text('Hsinta Power Plant – Storage Tank Survey', pageW/2, 9, { align:'center' });
-    doc.setFontSize(9); doc.setTextColor(200,220,255);
-    doc.text('興達發電廠儲槽／桶槽統計調查表', pageW/2, 17, { align:'center' });
-
-    const fields = [
-      ['序號',           `#${r.序號}`],
-      ['申報時間',       r.申報時間],
-      ['組別－課別',     r.組別課別],
-      ['儲槽區域',       r.儲槽區域],
-      ['詳細位置',       r.詳細位置],
-      ['是否貯存化學品', r.是否化學品],
-      ['內容物說明',     r.內容物說明],
-      ['槽體顏色',       r.槽體顏色],
-      ['槽體大約高度',   r.槽體高度],
-      ['維護負責人',     r.維護負責人],
-      ['具有爬梯',       r.具有爬梯],
-      ['爬梯管制措施',   r.爬梯管制措施 || '—'],
-      ['具高處作業平台', r.具有高處平台],
-      ['護欄狀況',       r.護欄狀況 || '（無平台）'],
-      ['其他管制措施',   r.其他管制措施 || '—'],
-      ['照片檔名',       r.照片檔名 || '（未提供）'],
-    ];
-
-    doc.autoTable({
-      startY: 26, head: [['欄位 Field', '內容 Content']], body: fields,
-      margin: { left: margin, right: margin },
-      headStyles: { fillColor:[26,95,168], textColor:[255,255,255], fontStyle:'bold' },
-      alternateRowStyles: { fillColor:[245,249,255] },
-      styles: { fontSize:10, cellPadding:4 },
-      columnStyles: { 0:{ fontStyle:'bold', cellWidth:62 }, 1:{ cellWidth:'auto' } },
-    });
+    html += `
+  <div class="record">
+    <div class="record-title">紀錄編號 #${i + 1}　｜　${r.unit}　｜　${r.zone}</div>
+    <table>
+      <tr><th>申報時間</th><td>${r.ts}</td></tr>
+      <tr><th>組別－課別</th><td>${r.unit}</td></tr>
+      <tr><th>儲槽區域</th><td>${r.zone}</td></tr>
+      <tr><th>詳細位置說明</th><td>${r.location}</td></tr>
+      <tr><th>是否貯存化學品</th><td>${r.chemical}</td></tr>
+      <tr><th>內容物說明</th><td>${r.content}</td></tr>
+      <tr><th>槽體顏色</th><td>${r.color}</td></tr>
+      <tr><th>槽體大約高度</th><td>${r.height}</td></tr>
+      <tr><th>檢點負責人</th><td>${r.owner}</td></tr>
+      <tr><th>具有爬梯</th><td>${r.ladder}</td></tr>
+      <tr><th>爬梯管制措施</th><td>${r.ladderCtrl || '—'}</td></tr>
+      <tr><th>具高處作業平台</th><td>${r.platform}</td></tr>
+      <tr><th>護欄狀況</th><td>${r.railing || '（無平台）'}</td></tr>
+      <tr><th>其他管制措施</th><td>${r.otherCtrl || '—'}</td></tr>
+      <tr><th>照片檔名（近照／遠照）</th><td>${r.photos || '（未提供）'}</td></tr>
+    </table>`;
 
     const photos = r.photoFiles || [];
     if (photos.length > 0) {
-      let imgY = doc.lastAutoTable.finalY + 8;
-      doc.setFontSize(9); doc.setTextColor(100);
-      doc.text('儲槽現場照片 On-site Photos:', margin, imgY);
-      imgY += 5; let imgX = margin;
-      for (let p = 0; p < Math.min(photos.length,3); p++) {
+      html += `<div class="photos-label">📷 儲槽現場照片</div><div class="img-row">`;
+      for (let p = 0; p < Math.min(photos.length, 4); p++) {
         try {
           const b64 = await toBase64(photos[p].file);
-          const ext = photos[p].file.type.includes('png') ? 'PNG' : 'JPEG';
-          doc.addImage('data:'+photos[p].file.type+';base64,'+b64, ext, imgX, imgY, 52, 40);
-          imgX += 56;
+          html += `<img src="data:${photos[p].file.type};base64,${b64}">`;
         } catch(_) {}
       }
+      html += `</div>`;
     }
-    doc.setFontSize(8); doc.setTextColor(160);
-    doc.text(`Page ${i+1} / ${data.length}  ·  ${new Date().toLocaleDateString('zh-TW')}`, pageW-margin, 293, { align:'right' });
+    html += `</div>`;  // end .record
   }
+
+  html += `
+  <div class="export-time">本報表由興達發電廠儲槽統計調查系統自動產生</div>
+</body></html>`;
+
   hideOverlay();
-  doc.save(`興達儲槽調查表_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'-')}.pdf`);
-  showStatus('✅ PDF 已下載', 'success');
+
+  const printWin = window.open('', '_blank');
+  printWin.document.write(html);
+  printWin.document.close();
+  setTimeout(() => {
+    printWin.focus();
+    printWin.print();
+    showStatus('✅ 報表已開啟，請選擇「另存為 PDF」儲存', 'success');
+  }, 600);
 }
+
 
 // ─── 清除 ────────────────────────────────
 function clearForm() {
-  ['unit','location','content','color','height','owner','ladder-ctrl','other-ctrl'].forEach(id => {
+  ['unit','location','content','color','height','owner','other-ctrl','ladder-ctrl-other-text'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  // 清除爬梯複選
+  document.querySelectorAll('input[name="ladder-ctrl"]').forEach(cb => cb.checked = false);
+  const otherTxt = document.getElementById('ladder-ctrl-other-text');
+  if (otherTxt) otherTxt.style.display = 'none';
   ['chemical','ladder','platform','railing'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
