@@ -370,7 +370,7 @@
       </div>
     </div>
     <a id="sheet-link"
-       href="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
+       href="https://docs.google.com/spreadsheets/d/1f-2RLhzVf8tmQMVIwJKKwo1NH21mKnJXScIkW9YA7lo/edit"
        target="_blank" rel="noopener"
        class="btn-view-sheet">
       📋 檢視已上傳資料
@@ -589,7 +589,7 @@
 <div id="status-bar"></div>
 
 <script>
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwzUU84xf9g3DnshFdupq_exd9B8ziJtJWyb4LrxWWrC3lzyjD4RDbzptW1iUJmS2MX/exec";
 
 document.getElementById('header-date').textContent =
   new Date().toLocaleDateString('zh-TW',{ year:'numeric', month:'long', day:'numeric', weekday:'long' });
